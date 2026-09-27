@@ -51,8 +51,17 @@ und verwaltet sie in einer einfachen Pipeline (Neu -> In Prüfung -> Qualifizier
 
 - Manuelle Eingabe (`/leads/new`)
 - CRM-Import per CSV (`title,organization,description,location,budget_estimate,deadline`)
-- Ausschreibungsportale — Tabelle/Schema ist vorbereitet (`source = 'tender_portal'`, `raw_data` jsonb),
-  ein konkreter Portal-Connector (Scraper/API) ist der nächste Schritt und noch nicht angebunden.
+- Ausschreibungsportale — angebunden ist [TED](https://ted.europa.eu) (Tenders Electronic Daily,
+  offizielle EU-Plattform für öffentliche Ausschreibungen). Kostenlose, öffentliche API, kein
+  Login nötig. Gefiltert nach Event-relevanten CPV-Codes (Kongress-/Messe-/Event-/Festivalorganisation,
+  siehe `lib/connectors/ted.ts`). Button "TED-Ausschreibungen abrufen" auf `/leads` stößt den Sync an;
+  Dedupe läuft über `source_reference` (TED-Publikationsnummer).
+
+  **Wichtig:** Die Feldnamen der TED-API-Response wurden aus der offiziellen Doku übernommen, aber
+  in dieser Entwicklungsumgebung nicht live gegen die echte API getestet (kein Internetzugriff in der
+  Build-Sandbox). Der komplette Rohdatensatz landet trotzdem immer in `raw_data` — geht also nichts
+  verloren, falls beim ersten echten Sync ein einzelner Feldname (z.B. Titel oder Frist) nicht ankommt.
+  Bei Bedarf `lib/connectors/ted.ts` → `pickField()`-Kandidatenlisten nach dem ersten Testlauf anpassen.
 
 ### Tech-Stack
 
@@ -93,6 +102,9 @@ Ein `ANTHROPIC_API_KEY` braucht ein Guthaben in der [Anthropic Console](https://
 
 ### Nächste Schritte (Vorschlag)
 
-1. Ersten echten Ausschreibungsportal-Connector bauen (ein Portal, ein Cron-Job, Insert mit `source='tender_portal'`).
-2. Mit echten Leads aus dem eigenen Tagesgeschäft befüllen und Scoring-Qualität validieren.
-3. Erst danach: Auth/Multi-Tenant, falls Verkauf an andere Agenturen ansteht (Phase 2 der Business-Entscheidung).
+1. **Ersten echten TED-Sync fahren** und prüfen, ob Titel/Auftraggeber/Frist korrekt ankommen
+   (Button auf `/leads`). Falls ein Feld leer bleibt: `raw_data` des betroffenen Leads in Supabase
+   ansehen und die passende Kandidaten-Liste in `lib/connectors/ted.ts` ergänzen.
+2. Sync als Cron-Job automatisieren (z.B. täglich), sobald die Feld-Zuordnung stimmt.
+3. Mit echten Leads aus dem eigenen Tagesgeschäft (manuell/CSV) befüllen und Scoring-Qualität validieren.
+4. Erst danach: Auth/Multi-Tenant, falls Verkauf an andere Agenturen ansteht (Phase 2 der Business-Entscheidung).

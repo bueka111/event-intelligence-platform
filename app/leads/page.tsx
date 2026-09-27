@@ -4,6 +4,7 @@ import type { Lead } from "@/lib/types";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ImportCsvForm } from "@/components/ImportCsvForm";
+import { SyncTedButton } from "@/components/SyncTedButton";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,10 @@ export default async function LeadsPage() {
             {leads?.length ?? 0} Leads · sortiert nach KI-Score
           </p>
         </div>
-        <ImportCsvForm />
+        <div className="flex flex-col items-end gap-2">
+          <SyncTedButton />
+          <ImportCsvForm />
+        </div>
       </div>
 
       {!leads?.length ? (
