@@ -2,8 +2,35 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { LeadEnrichmentSchema, type Lead, type LeadEnrichment } from "./types";
 
-const client = new Anthropic();
 const MODEL = process.env.ANTHROPIC_LEAD_MODEL ?? "claude-opus-5";
+const IS_MOCK = process.env.ANTHROPIC_MOCK === "true";
+
+/**
+ * Kostenloser Mock fuer lokale Tests ohne Anthropic-API-Key/-Guthaben.
+ * Liefert eine plausible, deterministische Bewertung anhand einfacher
+ * Heuristiken (Budgethoehe, vorhandene Beschreibung). Keine echte KI-Analyse -
+ * nur zum Durchklicken des UI-Flows. In .env.local: ANTHROPIC_MOCK=true
+ */
+function mockEnrichLead(
+  lead: Pick<Lead, "title" | "organization" | "description" | "budget_estimate">,
+): LeadEnrichment {
+  const budget = lead.budget_estimate ?? 0;
+  const hasDescription = Boolean(lead.description && lead.description.length > 20);
+  let score = 40;
+  if (budget >= 100000) score += 30;
+  else if (budget >= 20000) score += 15;
+  if (hasDescription) score += 15;
+  if (lead.organization) score += 10;
+  score = Math.min(95, Math.max(10, score));
+
+  return {
+    score,
+    score_reasoning: `[MOCK] Heuristik aus Budget (${budget || "unbekannt"} EUR) und Datenqualitaet - kein echter KI-Call.`,
+    ai_summary: `[MOCK] ${lead.title}${lead.organization ? ` fuer ${lead.organization}` : ""}. Aktiviere echtes Scoring mit ANTHROPIC_MOCK=false und einem gueltigen ANTHROPIC_API_KEY.`,
+    extracted_budget_estimate: lead.budget_estimate ?? null,
+    extracted_deadline: null,
+  };
+}
 
 /**
  * Reichert einen Lead mit einem Relevanz-Score, einer Begruendung und einer
@@ -13,6 +40,11 @@ const MODEL = process.env.ANTHROPIC_LEAD_MODEL ?? "claude-opus-5";
 export async function enrichLead(
   lead: Pick<Lead, "title" | "organization" | "description" | "location" | "budget_estimate" | "deadline" | "raw_data">,
 ): Promise<LeadEnrichment> {
+  if (IS_MOCK) {
+    return mockEnrichLead(lead);
+  }
+
+  const client = new Anthropic();
   const context = [
     `Titel: ${lead.title}`,
     lead.organization ? `Organisation: ${lead.organization}` : null,

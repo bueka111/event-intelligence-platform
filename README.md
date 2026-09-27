@@ -76,12 +76,20 @@ und verwaltet sie in einer einfachen Pipeline (Neu -> In Prüfung -> Qualifizier
 
 5. Öffnen: `http://localhost:3000/leads`
 
-### Kosten-Hinweis zum Scoring-Modell
+### Kosten beim Testen vermeiden
 
-`ANTHROPIC_LEAD_MODEL` steuert, welches Claude-Modell für die Anreicherung genutzt wird
-(Standard: `claude-opus-5`, höchste Qualität). Bei hohem Lead-Volumen ist `claude-sonnet-5`
-oder `claude-haiku-4-5` deutlich günstiger bei weiterhin guter Qualität für diese Aufgabe —
-einfach in `.env.local` umstellen.
+Drei Stufen, je nachdem was du testen willst:
+
+1. **UI/Flow ohne jeden API-Call testen (0 €):** `ANTHROPIC_MOCK=true` in `.env.local` setzen.
+   `ANTHROPIC_API_KEY` kann dabei leer bleiben. Score/Zusammenfassung sind dann nur eine
+   Heuristik (klar als `[MOCK]` markiert), aber der komplette Klick-Flow funktioniert.
+2. **Echtes Scoring, minimale Kosten:** `ANTHROPIC_MOCK=false` + `ANTHROPIC_LEAD_MODEL=claude-haiku-4-5`.
+   Ein einzelner Lead kostet damit einen winzigen Bruchteil eines Cents.
+3. **Produktion / beste Qualität:** `ANTHROPIC_LEAD_MODEL=claude-opus-5` (Standard) oder `claude-sonnet-5`
+   als Mittelweg zwischen Kosten und Qualität.
+
+Ein `ANTHROPIC_API_KEY` braucht ein Guthaben in der [Anthropic Console](https://console.anthropic.com)
+(Pay-as-you-go, kein Abo) — für Stufe 1 aber gar nicht nötig.
 
 ### Nächste Schritte (Vorschlag)
 
